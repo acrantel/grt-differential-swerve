@@ -17,7 +17,7 @@ public class Swerve {
 	private final double kF;
 	private NavXGyro gyro;
 	/** wheels[0]=fr, wheels[1]=br, wheels[2]=bl, wheels[3]=fl */
-	private Wheel[] wheels;
+	private Module[] wheels;
 
 	/** requested x velocity, y velocity, angular velocity(rad/s), and angle */
 	private volatile double userVX, userVY, userW, angle;
@@ -32,11 +32,11 @@ public class Swerve {
 		angle = 0.0;
 		robotCentric = false;
 
-		wheels = new Wheel[4];
-		wheels[FR_WHEEL] = new Wheel(BIGData.getWheelName(FR_WHEEL));
-		wheels[BR_WHEEL] = new Wheel(BIGData.getWheelName(BR_WHEEL));
-		wheels[BL_WHEEL] = new Wheel(BIGData.getWheelName(BL_WHEEL));
-		wheels[FL_WHEEL] = new Wheel(BIGData.getWheelName(FL_WHEEL));
+		wheels = new Module[4];
+		wheels[FR_WHEEL] = new Module(BIGData.getWheelName(FR_WHEEL));
+		wheels[BR_WHEEL] = new Module(BIGData.getWheelName(BR_WHEEL));
+		wheels[BL_WHEEL] = new Module(BIGData.getWheelName(BL_WHEEL));
+		wheels[FL_WHEEL] = new Module(BIGData.getWheelName(FL_WHEEL));
 
 		SWERVE_WIDTH = BIGData.getDouble("swerve_width");
 		SWERVE_HEIGHT = BIGData.getDouble("swerve_height");
