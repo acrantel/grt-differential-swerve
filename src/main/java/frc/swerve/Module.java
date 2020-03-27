@@ -36,27 +36,19 @@ class Module {
 	// whether the motors should be inverted
 	private boolean invertMotor1;
 	private boolean invertMotor2;
-	
 	/** encoder with the rotation of the wheel (direction its pointing) */
-    private AnalogEncoder rotateEncoder;
-    /** ticks per rotation (this is for the rotateEncoder) */
-	private final int TICKS_PER_ROTATION;
-
-	/** number of rotations of the drive motor that results in one rotation of the ring gear */
-	private final double STEERING_GEAR_RATIO;
-	/** number of rotations of the motor shaft that results in one rotation of the wheel axle gear */
-	private final double DRIVE_GEAR_RATIO;
-	/** maximum motor speed, in radians per second */ 
-	private final double MAX_MOTOR_SPEED; 
-
+	private AnalogEncoder rotateEncoder;
 	/** client requested wheel angle, in radians, where 0 is the 0 position of 
 	 * the rotateEncoder. this value will always be between 0 and 2pi */
 	private volatile double reqWheelAngle;
 	/** client requested wheel spin speed, in radians/sec */
 	private volatile double reqSpinSpeed;
-
 	/** PID controller for the angle of the wheel (aka direction its pointing) */
 	private ProfiledPIDController pidWheelAngle;
+
+	/** Thread to run the PID loop for wheel angle */
+	private Thread anglePIDThread;
+	private final int anglePIDTimeMs = 5;
 	
     // name of the module (e.g. "fr", "br", etc)
 	private String name;
@@ -64,6 +56,15 @@ class Module {
 	/** whether we are currently in "reversed mode". this is a state variable 
 	 * used so we turn the shortest amount when changing the wheel angle. */
 	private boolean reversed;
+
+    /** ticks per rotation (this is for the rotateEncoder) */
+	private final int TICKS_PER_ROTATION;
+	/** number of rotations of the drive motor that results in one rotation of the ring gear */
+	private final double STEERING_GEAR_RATIO;
+	/** number of rotations of the motor shaft that results in one rotation of the wheel axle gear */
+	private final double DRIVE_GEAR_RATIO;
+	/** maximum motor speed, in radians per second */ 
+	private final double MAX_MOTOR_SPEED; 
 
 	public Module(String name) {
         this.name = name;
@@ -98,7 +99,11 @@ class Module {
 			BIGData.getDouble("wheel_angle_kI"), BIGData.getDouble("wheel_angle_kD"), new TrapezoidProfile.Constraints(1, 1), 2);
 
         configDriveMotor(sparkMax1);
-        configDriveMotor(sparkMax2);
+		configDriveMotor(sparkMax2);
+		
+		// start thread for wheel angle PID loop
+		anglePIDThread = new Thread(this::runAnglePID);
+		anglePIDThread.start();
 	}
 
 	public void enable() {
@@ -113,20 +118,35 @@ class Module {
 	public void zero() {
         rotateEncoder.reset();
     }
-    
-    /** update function with PID loops, etc */
-    public void update() {
+
+    /** Function that contains a loop that runs PID calculations for wheel angle 
+	 * (at about 3 to 4 times faster than the swerve loop). Runs in a separate thread */
+    private void runAnglePID() {
+		long prevTime = System.currentTimeMillis();
+		while (true) {
+			doPIDCalc();
+			while (System.currentTimeMillis() < prevTime + anglePIDTimeMs) {}
+			prevTime = System.currentTimeMillis();
+		}
+	}
+
+	/** Calculate what speed the module should rotate at and what speed the 
+	 * wheel should spin at from PID and trapezoidal profile calculations, 
+	 * then set the motor speeds to the motors by calling setModuleSpeeds */
+	private void doPIDCalc() {
 		// current and target positions in rotations (for simpler calculations)
 		double currentPosition = GRTUtil.positiveMod(rotateEncoder.get(), 1.0);
 		double targetPosition = reqWheelAngle / TWO_PI;
 
 		// below is code for turning the shortest distance to an angle (like 30 degrees instead of 330)
-		// we are always be able to turn less than or equal to a 90 deg to a target position
+		// we are always be able to turn less than or equal to 90 deg to a target position
+		boolean goalChanged = false; // whether targetPosition was changed
 		double error = currentPosition - targetPosition;
 		if (Math.abs(error) > 0.5) {
 			// if the current values are more than half a rotation apart, move targetPosition 
 			// one rotation closer to currentPosition so it is within half a rotation apart
 			targetPosition += Math.signum(error);
+			goalChanged = true;
 		}
 		error = currentPosition - targetPosition;
 		if (Math.abs(error) > 0.25) {
@@ -134,51 +154,18 @@ class Module {
 			targetPosition += Math.signum(error) * 0.5;
 			// at targetPosition, we'll need to reverse our spin direction
 			reversed = true;
+			goalChanged = true;
 		} else {
 			reversed = false;
 		}
-
-		pidWheelAngle.calculate(currentPosition * TWO_PI, targetPosition * TWO_PI);
-		// TODO figure out what ^ means
-
-
-		if (speed != 0.0) {
-			double targetPosition = radians / TWO_PI;
-			targetPosition = GRTUtil.positiveMod(targetPosition, 1.0);
-
-			int encoderPosition = rotateMotor.getSelectedSensorPosition(0) - OFFSET;
-			double currentPosition = encoderPosition / TICKS_PER_ROTATION;
-			double rotations = Math.floor(currentPosition);
-			currentPosition -= rotations;
-			double delta = currentPosition - targetPosition;
-			if (Math.abs(delta) > 0.5) {
-				targetPosition += Math.signum(delta);
-			}
-			delta = currentPosition - targetPosition;
-			boolean newReverse = false;
-			if (Math.abs(delta) > 0.25) {
-				targetPosition += Math.signum(delta) * 0.5;
-				newReverse = true;
-			}
-			targetPosition += rotations;
-			reversed = newReverse;
-			double encoderPos = targetPosition * TICKS_PER_ROTATION + OFFSET;
-			rotateMotor.set(ControlMode.Position, encoderPos);
-			speed *= (reversed ? -1 : 1);
+		// if our targetPosition (goal) changed, update the goal for the PID controller
+		if (goalChanged) {
+			pidWheelAngle.setGoal(targetPosition * TWO_PI);
 		}
-		driveMotor.set(speed);
-		//https://docs.wpilib.org/en/latest/docs/software/advanced-control/controllers/pidcontroller.html
+
+		double steerSpeed = pidWheelAngle.calculate(currentPosition * TWO_PI);
+		setModuleSpeeds(steerSpeed, reqSpinSpeed * (reversed ? -1 : 1));
 	}
-
-	/** TODO Fastest Control Loop (probably run on Talon SRXs)
-yes Velocity Control of 775Pro Motor
-Medium Control Loop (run on RoboRIO)
-no Speed Control of Wheel (effectively “Common Mode” Velocity of Motors)
-
-yes Speed Control of Steering (effectively sets “Differential Mode” Velocity of Motors
-
-Slowest Control Loop (run on RoboRIO)
-in swerve.java Path Planning Determining All Desired Wheel Speeds and Steering Angles. */
 
     /**
      * Set this module's rotation and translation speeds.
@@ -208,6 +195,7 @@ in swerve.java Path Planning Determining All Desired Wheel Speeds and Steering A
 	 */
 	public void set(double radians, double speed) {
 		reqWheelAngle = GRTUtil.positiveMod(radians, TWO_PI);
+		pidWheelAngle.setGoal(reqWheelAngle);
 		reqSpinSpeed = speed;
     }
 
