@@ -1,9 +1,9 @@
 package frc.swerve;
 
 import frc.gen.BIGData;
+import frc.util.GRTUtil;
 
 public class Swerve {
-
 	private final double SWERVE_WIDTH;
 	private final double SWERVE_HEIGHT;
 	private final double RADIUS;
@@ -16,15 +16,14 @@ public class Swerve {
 	private final double kD;
 	private final double kF;
 	private NavXGyro gyro;
-	/** wheels[0]=fr, wheels[1]=br, wheels[2]=bl, wheels[3]=fl */
-	private Module[] wheels;
+	/** array of swerve modules */
+	private Module[] modules;
 
 	/** requested x velocity, y velocity, angular velocity(rad/s), and angle */
 	private volatile double userVX, userVY, userW, angle;
 	/** determines if robot centric control or field centric control is used */
 	private volatile boolean robotCentric;
 	private volatile boolean withPID;
-	private volatile SwerveData swerveData;
 
 	public Swerve() {
 		this.gyro = new NavXGyro();
@@ -32,11 +31,8 @@ public class Swerve {
 		angle = 0.0;
 		robotCentric = false;
 
-		wheels = new Module[4];
-		wheels[FR_WHEEL] = new Module(BIGData.getWheelName(FR_WHEEL));
-		wheels[BR_WHEEL] = new Module(BIGData.getWheelName(BR_WHEEL));
-		wheels[BL_WHEEL] = new Module(BIGData.getWheelName(BL_WHEEL));
-		wheels[FL_WHEEL] = new Module(BIGData.getWheelName(FL_WHEEL));
+		modules = new Module[1];
+		modules[0] = new Module("module");
 
 		SWERVE_WIDTH = BIGData.getDouble("swerve_width");
 		SWERVE_HEIGHT = BIGData.getDouble("swerve_height");
@@ -47,31 +43,21 @@ public class Swerve {
 		WHEEL_ANGLE = Math.atan2(SWERVE_WIDTH, SWERVE_HEIGHT);
 		ROTATE_SCALE = 1 / RADIUS;
 		calcSwerveData();
-		// TODO: test swerve PID
 		setAngle(0.0);
 	}
 
 	public void update() {
-
 		refreshVals();
-		double w = userW;
-		if (withPID) {
-			w = calcPID();
-		}
-		changeMotors(userVX, userVY, w);
+		changeModules(userVX, userVY, w);
 		calcSwerveData();
 	}
 
+	/** get values from BIGData and load into instance variables */
 	private void refreshVals() {
-		withPID = BIGData.isPID();
-		angle = BIGData.getRequestedAngle();
-
 		userVX = BIGData.getRequestedVX();
 		userVY = BIGData.getRequestedVY();
 		userW = BIGData.getRequestedW();
-		if (userW != 0 || Math.abs(gyro.getAngle() % 360 - angle) < .5) {
-			BIGData.setPIDFalse();
-		}
+
 		if (BIGData.getZeroSwerveRequest()) {
 			System.out.println("zeroing ALL wheels");
 			zeroRotate();
@@ -87,9 +73,7 @@ public class Swerve {
 
 		boolean zeroesUpdated = false;
 
-		for (int i = 0; i < wheels.length; i++) {
-			BIGData.putWheelRawDriveSpeed(wheels[i].getName(), wheels[i].getRawDriveSpeed());
-			BIGData.putWheelRawRotateSpeed(wheels[i].getName(), wheels[i].getRawRotateSpeed());
+		for (int i = 0; i < modules.length; i++) {
 			if (BIGData.getZeroIndivSwerveRequest(i)) {
 				zeroRotateIndiv(i);
 				zeroesUpdated = true;
@@ -104,6 +88,7 @@ public class Swerve {
 	/**
 	 * calculates angle correction for robot based on current angle, requested
 	 * angle, kP, and kD
+	 * TODO add PIDController to swerve?
 	 */
 	private double calcPID() {
 		// System.out.println("kF: " + kF);
@@ -133,7 +118,7 @@ public class Swerve {
 	}
 
 	/**
-	 * change the motors to reach the requested values
+	 * give new wheel position and spin speed values to the modules
 	 * 
 	 * @param vx
 	 *               the requested x velocity from -1.0 to 1.0
@@ -142,12 +127,12 @@ public class Swerve {
 	 * @param w
 	 *               the requested angular velocity
 	 */
-	private void changeMotors(double vx, double vy, double w) {
+	private void changeModules(double vx, double vy, double w) {
 		w *= ROTATE_SCALE;
 		double gyroAngle = (robotCentric ? 0 : Math.toRadians(gyro.getAngle()));
-		for (int i = 0; i < wheels.length; i++) {
-			// angle in radians
-			double wheelAngle = getRelativeWheelAngle(i) - gyroAngle;
+		for (int i = 0; i < modules.length; i++) {
+			// angle between the module, the center of the robot, and the x axis
+			double wheelAngle = Math.atan2(modules[i].getModuleYPos(), modules[i].getModuleXPos()) - gyroAngle;
 			// x component of tangential velocity
 			double wx = (w * RADIUS) * Math.cos(Math.PI / 2 + wheelAngle);
 			// y component of tangential velocity
@@ -156,24 +141,8 @@ public class Swerve {
 			double wheelVY = vy + wy;
 			double wheelPos = Math.atan2(wheelVY, wheelVX) + gyroAngle - Math.PI / 2;
 			double power = Math.sqrt(wheelVX * wheelVX + wheelVY * wheelVY);
-			wheels[i].set(wheelPos, power);
+			modules[i].set(wheelPos, power);
 		}
-	}
-
-	private double getRelativeWheelAngle(int i) {
-		double angle = WHEEL_ANGLE;
-		switch (i) {
-		case BR_WHEEL:
-			angle = GRTUtil.TWO_PI - WHEEL_ANGLE;
-			break;
-		case BL_WHEEL:
-			angle = Math.PI + WHEEL_ANGLE;
-			break;
-		case FL_WHEEL:
-			angle = Math.PI - WHEEL_ANGLE;
-			break;
-		}
-		return angle;
 	}
 
 	private void calcSwerveData() {
@@ -184,18 +153,15 @@ public class Swerve {
 	 * Takes the current position of the wheels and sets them as zero in the
 	 * currently running program and adds them to BIGData
 	 */
-    //TODO combine zeroRotate and zeroRotateIndiv for more extensible code
 	private void zeroRotate() {
-		for (int i = 0; i < wheels.length; i++) {
-			wheels[i].zero();
-			BIGData.putWheelZero(wheels[i].getName(), wheels[i].getOffset());
+		for (int i = 0; i < modules.length; i++) {
+			modules[i].zero();
 		}
 	}
 
 	private void zeroRotateIndiv(int wheelNum) {
-		if (wheelNum < wheels.length) {
-			wheels[wheelNum].zero();
-			BIGData.putWheelZero(wheels[wheelNum].getName(), wheels[wheelNum].getOffset());
+		if (wheelNum < modules.length) {
+			modules[wheelNum].zero();
 		}
 	}
 

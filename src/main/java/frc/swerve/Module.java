@@ -12,25 +12,27 @@ import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import edu.wpi.first.wpilibj.AnalogEncoder;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.controller.ProfiledPIDController;
+import edu.wpi.first.wpilibj.drive.Vector2d;
 import edu.wpi.first.wpilibj.trajectory.TrapezoidProfile;
 import frc.gen.BIGData;
 import frc.util.GRTUtil;
 
 /**
- * requirements:
- * rn swerve's update (and thus PID) is called every 20 ms -> we should do wheel angle PID every 5 ms?!
- * TODO PID control loop for rotation (input to loop = absolute encoder tied to the wheel's rotation)  -> 
- * PID control loop for axle speed? not necessary because PID control loop for motor speeds will get it to that speed
- * PID control loop for motor speeds? done -> inside SparkMax
+ * requirements: rn swerve's update (and thus PID) is called every 20 ms -> we
+ * should do wheel angle PID every 5 ms?! TODO PID control loop for rotation
+ * (input to loop = absolute encoder tied to the wheel's rotation) -> PID
+ * control loop for axle speed? not necessary because PID control loop for motor
+ * speeds will get it to that speed PID control loop for motor speeds? done ->
+ * inside SparkMax
  */
 class Module {
-    // motor controllers for neos in the swerve module
-    private CANSparkMax sparkMax1;
+	// motor controllers for neos in the swerve module
+	private CANSparkMax sparkMax1;
 	private CANSparkMax sparkMax2;
 	// PID controllers for neos
 	private CANPIDController pidMotor1;
 	private CANPIDController pidMotor2;
-    // encoders for each neo motor
+	// encoders for each neo motor
 	private CANEncoder driveEncoder1;
 	private CANEncoder driveEncoder2;
 	// whether the motors should be inverted
@@ -38,8 +40,10 @@ class Module {
 	private boolean invertMotor2;
 	/** encoder with the rotation of the wheel (direction its pointing) */
 	private AnalogEncoder rotateEncoder;
-	/** client requested wheel angle, in radians, where 0 is the 0 position of 
-	 * the rotateEncoder. this value will always be between 0 and 2pi */
+	/**
+	 * client requested wheel angle, in radians, where 0 is the 0 position of the
+	 * rotateEncoder. this value will always be between 0 and 2pi
+	 */
 	private volatile double reqWheelAngle;
 	/** client requested wheel spin speed, in radians/sec */
 	private volatile double reqSpinSpeed;
@@ -48,10 +52,13 @@ class Module {
 
 	/** Thread to run the PID loop for wheel angle */
 	private Thread anglePIDThread;
-	private final int anglePIDTimeMs = 5;
-	
-    // name of the module (e.g. "fr", "br", etc)
+	private final int ANGLE_PID_TIMING = 5;
+
+	/** name of the module (e.g. "fr", "br", etc) */
 	private String name;
+
+	/** position of the module (with regards to the "center" of the robot), in meters */
+	private Vector2d modulePosition;
 
 	/** whether we are currently in "reversed mode". this is a state variable 
 	 * used so we turn the shortest amount when changing the wheel angle. */
@@ -66,8 +73,14 @@ class Module {
 	/** maximum motor speed, in radians per second */ 
 	private final double MAX_MOTOR_SPEED; 
 
-	public Module(String name) {
-        this.name = name;
+	/**
+	 * @param name the name of the module ("fr", "br", etc)
+	 * @param xPos the x position of the module relative to the center of the robot, in meters
+	 * @param yPos the y position of the module relative to the center of the robot, in meters
+	 */
+	public Module(String name, double xPos, double yPos) {
+		this.name = name;
+		this.modulePosition = new Vector2d(xPos, yPos);
         // instantiate motor controllers
         sparkMax1 = new CANSparkMax(BIGData.getInt(name + "_drive1"), MotorType.kBrushless);
 		sparkMax2 = new CANSparkMax(BIGData.getInt(name + "_drive2"), MotorType.kBrushless);
@@ -82,6 +95,8 @@ class Module {
 		// determine whether motors should be inverted
 		invertMotor1 = BIGData.getBoolean(name + "_invert_motor1");
 		invertMotor2 = BIGData.getBoolean(name + "_invert_motor2");
+		sparkMax1.setInverted(invertMotor1);
+		sparkMax2.setInverted(invertMotor2);
 
         // instantiate encoder for wheel rotation
         rotateEncoder = new AnalogEncoder(new AnalogInput(0));
@@ -123,11 +138,15 @@ class Module {
 	 * (at about 3 to 4 times faster than the swerve loop). Runs in a separate thread */
     private void runAnglePID() {
 		long prevTime = System.currentTimeMillis();
-		while (true) {
-			doPIDCalc();
-			while (System.currentTimeMillis() < prevTime + anglePIDTimeMs) {}
-			prevTime = System.currentTimeMillis();
-		}
+		try {
+			while (true) {
+				doPIDCalc();
+				while (System.currentTimeMillis() < prevTime + ANGLE_PID_TIMING) {
+					Thread.sleep(1);
+				}
+				prevTime = System.currentTimeMillis();
+			}
+		} catch (InterruptedException e) {}
 	}
 
 	/** Calculate what speed the module should rotate at and what speed the 
@@ -195,45 +214,28 @@ class Module {
 	 */
 	public void set(double radians, double speed) {
 		reqWheelAngle = GRTUtil.positiveMod(radians, TWO_PI);
-		pidWheelAngle.setGoal(reqWheelAngle);
 		reqSpinSpeed = speed;
     }
-
-	/** Return the rotate encoder's value in radians, scaled to be between 0 and 2pi*/
-	private double getEncoderPosition() {
-		return GRTUtil.positiveMod(rotateEncoder.get() * TWO_PI, TWO_PI);
-	}
-
-	public double getDriveSpeed() {
-		return driveEncoder.getVelocity() * DRIVE_TICKS_TO_METERS * (reversed ? -1 : 1) / 60.0;
-	}
-
-	public double getCurrentPosition() {
-		return GRTUtil.positiveMod((((rotateMotor.getSelectedSensorPosition(0) - OFFSET) * TWO_PI / TICKS_PER_ROTATION)
-				+ (reversed ? Math.PI : 0)), TWO_PI);
-	}
 
 	/** return the name of this wheel "fr", "br", "bl", "fl" */
 	public String getName() {
 		return name;
 	}
 
-	/** Return the rotationally zero position of the module in encoder ticks */
-	public int getOffset() {
-        // TODO use rotateEncoder.reset(); instead of OFFSET
-		return OFFSET;
+	/**
+	 * Get the x position of this module relative to the center of the robot
+	 * @return the x position of the module (in meters)
+	 */
+	public double getModuleXPos() {
+		return modulePosition.x;
 	}
 
-	/** get the drive motor speed in rotations/second */
-	public double getRawDriveSpeed() {
-		// (rotations/minute) * (1 min/60 sec)
-		return driveEncoder.getVelocity() / 60;
-	}
-
-	/** get the rotate motor speed in rotations/sec */
-	public double getRawRotateSpeed() {
-		// (ticks/100ms) / (ticks/rotation) * (10 (100ms)/1s)
-		return (rotateMotor.getSelectedSensorVelocity() / TICKS_PER_ROTATION) * 10;
+	/**
+	 * Get the y position of this module relative to the center of the robot
+	 * @return the y position of the module (in meters)
+	 */
+	public double getModuleYPos() {
+		return modulePosition.y;
 	}
 
 	/** set up P, I, D, F constants for the velocity PIDF loop responsible for 

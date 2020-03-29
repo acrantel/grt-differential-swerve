@@ -13,11 +13,6 @@ public class BIGData {
 	// RPM map of <distance (inches), RPM> for when the hood is down
 	public static TreeMap<Integer, Integer> downRPMMap;
 
-	public static final int FR_WHEEL = 0;
-	public static final int BR_WHEEL = 1;
-	public static final int BL_WHEEL = 2;
-	public static final int FL_WHEEL = 3;
-
 	public static void start() {
 		map = new HashMap<String, String>();
 		Config.start(map);
@@ -187,8 +182,30 @@ public class BIGData {
 	// 	return getDouble("joystick_y2");
 	// }
 
-    //TODO fix wheel zeroing stuff to be more extendable w/ arbitrary num of wheels
+	/** set the gyro's angle */
+	public static void putGyroAngle(double angle) {
+		put("gyro_ang", angle);
+	}
 
+	/** Request that swerve be zeroed. */
+	public static void putZeroSwerveRequest(boolean request) {
+		put("zero_swerve", request);
+	}
+
+	/** Get whether swerve has been requested to be zeroed. */
+	public static boolean getZeroSwerveRequest() {
+		return getBoolean("zero_swerve");
+	}
+
+	/** request to zero a single swerve module */
+	public static void putZeroIndivSwerveRequest(int wheelNum, boolean setTo) {
+		put("zero_module_" + wheelNum, setTo);
+	}
+
+	/** get whether a single swerve module has been requested to be zeroed */
+	public static boolean getZeroIndivSwerveRequest(int wheelNum) {
+		return getBoolean("zero_module_" + wheelNum);
+	}
 	/** set the config file message to display to drivers */
 	public static void putConfigFileMsg(String msg) {
 		put("config_msg", msg);
