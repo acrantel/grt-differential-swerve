@@ -142,6 +142,17 @@ public class BIGData {
 
     //TODO make joystick profiles in BIGData smaller
 
+	public static String getJoystickProfileXVals() {
+		return getString("joystick_x_vals");
+	}
+	public static String getJoystickProfileYVals() {
+		return getString("joystick_y_vals");
+	}
+
+
+	public static void setJoystickProfileVal(String point, double val) {
+		
+	}
 	// /** set the original value of the first joystick profile point */
 	// public static void setJoystickX1(double x1) {
 	// 	put("joystick_x1", x1);

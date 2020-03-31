@@ -7,8 +7,8 @@ public class Swerve {
 	private final double SWERVE_WIDTH;
 	private final double SWERVE_HEIGHT;
 	private final double RADIUS;
-	private final double WHEEL_ANGLE;
-    private final double ROTATE_SCALE;
+
+	private final double ROTATE_SCALE;
     //TODO use PIDController instead of homebrew pid
 	/** proportional scaling constant */
 	private final double kP;
@@ -32,7 +32,7 @@ public class Swerve {
 		robotCentric = false;
 
 		modules = new Module[1];
-		modules[0] = new Module("module");
+		modules[0] = new Module("module", 0, 0);
 
 		SWERVE_WIDTH = BIGData.getDouble("swerve_width");
 		SWERVE_HEIGHT = BIGData.getDouble("swerve_height");
@@ -40,7 +40,6 @@ public class Swerve {
 		kD = BIGData.getDouble("swerve_kd");
 		kF = BIGData.getDouble("swerve_kf");
 		RADIUS = Math.sqrt(SWERVE_WIDTH * SWERVE_WIDTH + SWERVE_HEIGHT * SWERVE_HEIGHT) / 2;
-		WHEEL_ANGLE = Math.atan2(SWERVE_WIDTH, SWERVE_HEIGHT);
 		ROTATE_SCALE = 1 / RADIUS;
 		calcSwerveData();
 		setAngle(0.0);
@@ -48,7 +47,7 @@ public class Swerve {
 
 	public void update() {
 		refreshVals();
-		changeModules(userVX, userVY, w);
+		changeModules(userVX, userVY, userW);
 		calcSwerveData();
 	}
 
