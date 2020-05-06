@@ -7,11 +7,6 @@ import frc.gen.BIGData;
 import frc.util.GRTUtil;
 
 class DriverControl extends Mode {
-    // if we are currently trying to center using camera/lidar data
-    private boolean useCenter = false;
-
-    private int lastPov;
-
     @Override
     public boolean loop() {
         JoystickProfile.updateProfilingPoints();
@@ -44,14 +39,14 @@ class DriverControl extends Mode {
             rotate = JoystickProfile.applyProfile(-(Math.abs(rTrigger) - Math.abs(lTrigger)));
         }
         if (rotate != 0) {
-            BIGData.setPIDFalse();
+            //TODO BIGData.setPIDFalse();
         }
 
-        int pov = Input.SWERVE_XBOX.getPOV();
-        if (pov != -1) {
-            lastPov = pov;
-            BIGData.setAngle(pov);
-        }
+        //int pov = Input.SWERVE_XBOX.getPOV();
+        //if (pov != -1) {
+            //lastPov = pov;
+            //TODO BIGData.setAngle(pov);
+        //}
         BIGData.requestDrive(x, y, rotate);
     }
 }

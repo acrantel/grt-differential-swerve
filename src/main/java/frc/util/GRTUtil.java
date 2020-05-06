@@ -1,7 +1,7 @@
-//package frc.util;
+package frc.util;
 
-// import com.revrobotics.CANSparkMax;
-// import com.revrobotics.CANSparkMax.IdleMode;
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.IdleMode;
 
 public class GRTUtil {
 
@@ -65,21 +65,8 @@ public class GRTUtil {
 		return newMin + ((newMax - newMin) / (origMax - origMin)) * (x - origMin);
 	}
 
-	/** parses a double array from a String. The String should be formatted like "[0.2, 0.5, 1.0]".
-	 * If parsing fails, return null.
-	 * @param doubleArray the String containing the array to parse
-	 * @return the double array parsed from the String
-	 */
-	public static double[] parseArray(String doubleArray) {
-		try {
-
-		} catch (NumberFormatException e) {
-			return null;
-		}
+	public static void defaultConfigSparkMax(CANSparkMax sparkMax) {
+		sparkMax.setIdleMode(IdleMode.kCoast);
 	}
-
-	// public static void defaultConfigSparkMax(CANSparkMax sparkMax) {
-	// 	sparkMax.setIdleMode(IdleMode.kCoast);
-	// }
 
 }

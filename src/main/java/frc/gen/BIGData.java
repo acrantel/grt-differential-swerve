@@ -140,58 +140,14 @@ public class BIGData {
 		return getBoolean("zero_gyro");
 	}
 
-    //TODO make joystick profiles in BIGData smaller
-
+	/** get a string containing a comma separated, ordered list of the joystick input mapping's x values */
 	public static String getJoystickProfileXVals() {
 		return getString("joystick_x_vals");
 	}
+	/** get a string containing a comma separated, ordered list of the joystick input mapping's y values */
 	public static String getJoystickProfileYVals() {
 		return getString("joystick_y_vals");
 	}
-
-
-	public static void setJoystickProfileVal(String point, double val) {
-		
-	}
-	// /** set the original value of the first joystick profile point */
-	// public static void setJoystickX1(double x1) {
-	// 	put("joystick_x1", x1);
-	// }
-
-	// /** set the new value of the first joystick profile point */
-	// public static void setJoystickY1(double y1) {
-	// 	put("joystick_y1", y1);
-	// }
-
-	// /** set the original value of the second joystick profile point */
-	// public static void setJoystickX2(double x2) {
-	// 	put("joystick_x2", x2);
-	// }
-
-	// /** set the new value of the second joystick profile point */
-	// public static void setJoystickY2(double y2) {
-	// 	put("joystick_y2", y2);
-	// }
-
-	// /** get the original value of the first joystick profile point */
-	// public static double getJoystickX1() {
-	// 	return getDouble("joystick_x1");
-	// }
-
-	// /** get the new value of the first joystick profile point */
-	// public static double getJoystickY1() {
-	// 	return getDouble("joystick_y1");
-	// }
-
-	// /** get the original value of the second joystick profile point */
-	// public static double getJoystickX2() {
-	// 	return getDouble("joystick_x2");
-	// }
-
-	// /** get the new value of the second joystick profile point */
-	// public static double getJoystickY2() {
-	// 	return getDouble("joystick_y2");
-	// }
 
 	/** set the gyro's angle */
 	public static void putGyroAngle(double angle) {

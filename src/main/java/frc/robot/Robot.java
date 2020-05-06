@@ -8,6 +8,9 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import frc.control.input.JoystickProfile;
+import frc.gen.BIGData;
+import frc.control.Mode;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -17,11 +20,11 @@ import edu.wpi.first.wpilibj.TimedRobot;
  * project.
  */
 public class Robot extends TimedRobot {
-
     @Override
     public void robotInit() {
         BIGData.start();
         JoystickProfile.init();
+        Mode.initModes();
     }
 
     @Override
@@ -38,6 +41,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopPeriodic() {
+        Mode.getMode(0).loop();
     }
 
     @Override

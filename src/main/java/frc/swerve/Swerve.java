@@ -25,6 +25,8 @@ public class Swerve {
 	private volatile boolean robotCentric;
 	private volatile boolean withPID;
 
+	private Thread swerveThread;
+
 	public Swerve() {
 		this.gyro = new NavXGyro();
 		gyro.reset();
@@ -43,6 +45,21 @@ public class Swerve {
 		ROTATE_SCALE = 1 / RADIUS;
 		calcSwerveData();
 		setAngle(0.0);
+		swerveThread = new Thread(this::runSwerve);
+		swerveThread.start();
+	}
+
+	public void runSwerve() {
+		long prevTime = System.currentTimeMillis();
+		try {
+			while (true) {
+				update();
+				while (System.currentTimeMillis() < prevTime + ANGLE_PID_TIMING) {
+					Thread.sleep(1);
+				}
+				prevTime = System.currentTimeMillis();
+			}
+		} catch (InterruptedException e) {}
 	}
 
 	public void update() {
