@@ -14,13 +14,13 @@ public class JoystickProfile {
 	private static final double[] DEFAULT_X_VALS = {0, 0.35, 0.7, 1.0};
 	private static final double[] DEFAULT_Y_VALS = {0, 0.1, 0.4, 1.0};
 
-	private JoystickProfile() {
-	}
+	private JoystickProfile() {}
 
 	public static void init() {
 		updateProfilingPoints();
 	}
 
+	/** parse profiling points from string loaded from config file */
 	public static void updateProfilingPoints() {
 		// x and y values of the joystick profile piecewise mapping function
 		String[] stringXVals = BIGData.getJoystickProfileXVals().split(",");
@@ -35,7 +35,9 @@ public class JoystickProfile {
 				yVals[i] = Double.parseDouble(stringYVals[i]);
 			}
 		} catch (NumberFormatException e) {
-			System.err.println("Unable to load joystick profile values");
+			System.err.println("Unable to load joystick profile values, loading default instead.");
+			xVals = DEFAULT_X_VALS;
+			yVals = DEFAULT_Y_VALS;
 		}
 		inputMapper = new PiecewiseLinearFunction(xVals, yVals);
 	}

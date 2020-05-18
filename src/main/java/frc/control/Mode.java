@@ -6,7 +6,7 @@ public abstract class Mode {
 
     public static void initModes() {
         driverControl = new DriverControl();
-        modes = new Mode[4];
+        modes = new Mode[1];
         modes[0] = driverControl;
     }
 

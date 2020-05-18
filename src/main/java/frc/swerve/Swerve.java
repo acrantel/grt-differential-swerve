@@ -1,5 +1,6 @@
 package frc.swerve;
 
+import edu.wpi.first.wpilibj.Notifier;
 import frc.gen.BIGData;
 import frc.util.GRTUtil;
 
@@ -9,12 +10,6 @@ public class Swerve {
 	private final double RADIUS;
 
 	private final double ROTATE_SCALE;
-    //TODO use PIDController instead of homebrew pid
-	/** proportional scaling constant */
-	private final double kP;
-	/** derivative scaling constant */
-	private final double kD;
-	private final double kF;
 	private NavXGyro gyro;
 	/** array of swerve modules */
 	private Module[] modules;
@@ -23,9 +18,8 @@ public class Swerve {
 	private volatile double userVX, userVY, userW, angle;
 	/** determines if robot centric control or field centric control is used */
 	private volatile boolean robotCentric;
-	private volatile boolean withPID;
 
-	private Thread swerveThread;
+	private Notifier swerveRunner;
 
 	public Swerve() {
 		this.gyro = new NavXGyro();
@@ -38,34 +32,24 @@ public class Swerve {
 
 		SWERVE_WIDTH = BIGData.getDouble("swerve_width");
 		SWERVE_HEIGHT = BIGData.getDouble("swerve_height");
-		kP = BIGData.getDouble("swerve_kp");
-		kD = BIGData.getDouble("swerve_kd");
-		kF = BIGData.getDouble("swerve_kf");
 		RADIUS = Math.sqrt(SWERVE_WIDTH * SWERVE_WIDTH + SWERVE_HEIGHT * SWERVE_HEIGHT) / 2;
 		ROTATE_SCALE = 1 / RADIUS;
-		calcSwerveData();
-		setAngle(0.0);
-		swerveThread = new Thread(this::runSwerve);
-		swerveThread.start();
+	}
+
+	public void start() {
+		if (swerveRunner != null) {swerveRunner.stop();}
+		swerveRunner = new Notifier(this::runSwerve);
+		swerveRunner.startPeriodic(0.02);
+	}
+	public void stop() {
+		if (swerveRunner != null) {
+			swerveRunner.stop();
+		}
 	}
 
 	public void runSwerve() {
-		long prevTime = System.currentTimeMillis();
-		try {
-			while (true) {
-				update();
-				while (System.currentTimeMillis() < prevTime + ANGLE_PID_TIMING) {
-					Thread.sleep(1);
-				}
-				prevTime = System.currentTimeMillis();
-			}
-		} catch (InterruptedException e) {}
-	}
-
-	public void update() {
 		refreshVals();
 		changeModules(userVX, userVY, userW);
-		calcSwerveData();
 	}
 
 	/** get values from BIGData and load into instance variables */
@@ -101,33 +85,6 @@ public class Swerve {
 		}
 	}
 
-	/**
-	 * calculates angle correction for robot based on current angle, requested
-	 * angle, kP, and kD
-	 * TODO add PIDController to swerve?
-	 */
-	private double calcPID() {
-		// System.out.println("kF: " + kF);
-		double error = GRTUtil.angularDifference(Math.toRadians(gyro.getAngle()), Math.toRadians(angle));
-		// System.out.println("error: " + Math.toDegrees(error));
-		// System.out.println("gyro: " + gyro.getAngle());
-		// System.out.println("angle requested: " + angle);
-		double w = error * kP - Math.toRadians(gyro.getRate()) * kD;
-		System.out.println("W: " + w);
-		return -w;
-	}
-
-	/**
-	 * sets the angle of the robot
-	 * 
-	 * @param angle
-	 *                  the angle to turn the robot to, in radians
-	 */
-	private void setAngle(double angle) {
-		withPID = true;
-		this.angle = angle;
-	}
-
 	/** sets whether we use robot centric or field centric control */
 	public void setRobotCentric(boolean mode) {
 		robotCentric = mode;
@@ -161,12 +118,8 @@ public class Swerve {
 		}
 	}
 
-	private void calcSwerveData() {
-        //TODO add swerve data
-	}
-
 	/**
-	 * Takes the current position of the wheels and sets them as zero in the
+	 * Zeroes the azimuth of all the wheels and sets them as zero in the
 	 * currently running program and adds them to BIGData
 	 */
 	private void zeroRotate() {
@@ -175,6 +128,9 @@ public class Swerve {
 		}
 	}
 
+	/**
+	 * Zeroes module's azimuth (its heading)
+	 */
 	private void zeroRotateIndiv(int wheelNum) {
 		if (wheelNum < modules.length) {
 			modules[wheelNum].zero();

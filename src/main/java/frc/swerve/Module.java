@@ -17,14 +17,6 @@ import edu.wpi.first.wpilibj.trajectory.TrapezoidProfile;
 import frc.gen.BIGData;
 import frc.util.GRTUtil;
 
-/**
- * requirements: rn swerve's update (and thus PID) is called every 20 ms -> we
- * should do wheel angle PID every 5 ms?! TODO PID control loop for rotation
- * (input to loop = absolute encoder tied to the wheel's rotation) -> PID
- * control loop for axle speed? not necessary because PID control loop for motor
- * speeds will get it to that speed PID control loop for motor speeds? done ->
- * inside SparkMax
- */
 class Module {
 	// motor controllers for neos in the swerve module
 	private CANSparkMax sparkMax1;
@@ -121,20 +113,12 @@ class Module {
 		anglePIDThread.start();
 	}
 
-	public void enable() {
-		// TODO add enabling/disabling functionality
-    }
-    
-	public void disable() {
-        // TODO add enabling/disabling functionality
-	}
-
 	/** Zeroes the wheel by updating the offset, and returns the new offset */
 	public void zero() {
         rotateEncoder.reset();
     }
 
-    /** Function that contains a loop that runs PID calculations for wheel angle 
+    /** Function that contains a loop that runs PID calculations for wheel azimuth
 	 * (at about 3 to 4 times faster than the swerve loop). Runs in a separate thread */
     private void runAnglePID() {
 		long prevTime = System.currentTimeMillis();
@@ -192,7 +176,6 @@ class Module {
      * @param spinSpeed the speed to spin the wheel at in radians/sec
      */
     private void setModuleSpeeds(double steerSpeed, double spinSpeed) {
-        // https://www.youtube.com/watch?v=1BQIqXVhLEc
 		// (rad/s) the portion of the motors' rotation that goes towards changing the azimuth of the wheel
 		double motorSteerSpeed = steerSpeed * STEERING_GEAR_RATIO;
 		// (rad/s) the portion of the motors' rotation that goes towards spinning the axle of the wheel (translation)
@@ -217,7 +200,7 @@ class Module {
 		reqSpinSpeed = speed;
     }
 
-	/** return the name of this wheel "fr", "br", "bl", "fl" */
+	/** return the name of this wheel. Ex: "fr", "br", "bl", "fl" */
 	public String getName() {
 		return name;
 	}

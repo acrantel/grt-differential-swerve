@@ -4,7 +4,6 @@ import edu.wpi.first.wpilibj.GenericHID.Hand;
 import frc.control.input.Input;
 import frc.control.input.JoystickProfile;
 import frc.gen.BIGData;
-import frc.util.GRTUtil;
 
 class DriverControl extends Mode {
     @Override
@@ -15,38 +14,21 @@ class DriverControl extends Mode {
     }
 
     private void driveSwerve() {
-        // zero swerve gyro if start button (menu button) is pressed on swerve
-        // controller
+        // zero swerve gyro if start button (menu button) is pressed on swerve controller
         if (Input.SWERVE_XBOX.getStartButtonReleased()) {
             BIGData.putZeroGyroRequest(true);
         }
 
         double x = Input.SWERVE_XBOX.getX(Hand.kLeft);
-        // negativize y so that up is forward
-        double y = -Input.SWERVE_XBOX.getY(Hand.kLeft);
+        double y = -Input.SWERVE_XBOX.getY(Hand.kLeft); // negativize y so that up is forward
         x = JoystickProfile.applyProfile(x);
         y = JoystickProfile.applyProfile(y);
 
         // rotate the robot
         double lTrigger = Input.SWERVE_XBOX.getTriggerAxis(Hand.kLeft);
         double rTrigger = Input.SWERVE_XBOX.getTriggerAxis(Hand.kRight);
-        double rotate;
-        if (Input.SWERVE_XBOX.getBumper(Hand.kLeft)) {
-            rotate = JoystickProfile.applyProfile(-(Math.abs(rTrigger) - Math.abs(lTrigger)));
-            rotate = GRTUtil.transformation(-1, 1, -0.1, 0.1, rotate);
+        double rotate = JoystickProfile.applyProfile(-(Math.abs(rTrigger) - Math.abs(lTrigger)));
 
-        } else {
-            rotate = JoystickProfile.applyProfile(-(Math.abs(rTrigger) - Math.abs(lTrigger)));
-        }
-        if (rotate != 0) {
-            //TODO BIGData.setPIDFalse();
-        }
-
-        //int pov = Input.SWERVE_XBOX.getPOV();
-        //if (pov != -1) {
-            //lastPov = pov;
-            //TODO BIGData.setAngle(pov);
-        //}
         BIGData.requestDrive(x, y, rotate);
     }
 }

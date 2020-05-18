@@ -10,6 +10,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import frc.control.input.JoystickProfile;
 import frc.gen.BIGData;
+import frc.swerve.Swerve;
 import frc.control.Mode;
 
 /**
@@ -20,11 +21,14 @@ import frc.control.Mode;
  * project.
  */
 public class Robot extends TimedRobot {
+    private Swerve swerve;
     @Override
     public void robotInit() {
         BIGData.start();
         JoystickProfile.init();
         Mode.initModes();
+        swerve = new Swerve();
+        swerve.start();
     }
 
     @Override
