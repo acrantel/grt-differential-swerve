@@ -5,11 +5,8 @@ import frc.gen.BIGData;
 import frc.util.GRTUtil;
 
 public class Swerve {
-	private final double SWERVE_WIDTH;
-	private final double SWERVE_HEIGHT;
-	private final double RADIUS;
-
-	private final double ROTATE_SCALE;
+	/** scale down factor for swerve rotation */
+	private final static double ROTATE_SCALE = 0.05;
 	private NavXGyro gyro;
 	/** array of swerve modules */
 	private Module[] modules;
@@ -29,11 +26,6 @@ public class Swerve {
 
 		modules = new Module[1];
 		modules[0] = new Module("module", 0, 0);
-
-		SWERVE_WIDTH = BIGData.getDouble("swerve_width");
-		SWERVE_HEIGHT = BIGData.getDouble("swerve_height");
-		RADIUS = Math.sqrt(SWERVE_WIDTH * SWERVE_WIDTH + SWERVE_HEIGHT * SWERVE_HEIGHT) / 2;
-		ROTATE_SCALE = 1 / RADIUS;
 	}
 
 	public void start() {
@@ -104,12 +96,13 @@ public class Swerve {
 		w *= ROTATE_SCALE;
 		double gyroAngle = (robotCentric ? 0 : Math.toRadians(gyro.getAngle()));
 		for (int i = 0; i < modules.length; i++) {
+			double wheelRadius = Math.sqrt(Math.pow(modules[i].getModuleXPos(), 2) + Math.pow(modules[i].getModuleYPos(), 2));
 			// angle between the module, the center of the robot, and the x axis
 			double wheelAngle = Math.atan2(modules[i].getModuleYPos(), modules[i].getModuleXPos()) - gyroAngle;
 			// x component of tangential velocity
-			double wx = (w * RADIUS) * Math.cos(Math.PI / 2 + wheelAngle);
+			double wx = (w * wheelRadius) * Math.cos(Math.PI / 2 + wheelAngle);
 			// y component of tangential velocity
-			double wy = (w * RADIUS) * Math.sin(Math.PI / 2 + wheelAngle);
+			double wy = (w * wheelRadius) * Math.sin(Math.PI / 2 + wheelAngle);
 			double wheelVX = vx + wx;
 			double wheelVY = vy + wy;
 			double wheelPos = Math.atan2(wheelVY, wheelVX) + gyroAngle - Math.PI / 2;

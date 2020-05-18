@@ -90,9 +90,9 @@ class Module {
 		sparkMax1.setInverted(invertMotor1);
 		sparkMax2.setInverted(invertMotor2);
 
-        // instantiate encoder for wheel rotation
+        // instantiate encoder for wheel azimuth
         rotateEncoder = new AnalogEncoder(new AnalogInput(0));
-		TICKS_PER_ROTATION = BIGData.getInt("swerve_rotate_encoder_ticks");
+		TICKS_PER_ROTATION = BIGData.getInt("swerve_azimuth_encoder_ticks");
 
 		// gear ratio between motor and wheel's axle
 		STEERING_GEAR_RATIO = BIGData.getDouble("swerve_steering_gear_ratio");

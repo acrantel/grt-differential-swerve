@@ -1,0 +1,33 @@
+# Config file for differential swerve
+# Domain: roborio-192-frc.local
+
+# local file for config values like swerve zeroes
+local_config_file=local.txt
+
+ticks_per_rotation=1024
+
+# joystick profile variables
+# see https://www.desmos.com/calculator/bmcalwjje2
+joystick_x_vals=0.35, 0.7
+joystick_y_vals=0.1, 0.4
+
+# ids of motor controllers
+module_drive1=0
+module_drive2=1
+
+# whether motor controller should be inverted
+module_invert_motor1=false
+module_invert_motor2=false
+
+swerve_azimuth_encoder_ticks=
+
+swerve_steering_gear_ratio=
+swerve_drive_gear_ratio=
+
+# max motor speed in radians/sec
+swerve_max_motor_speed=
+
+# PID values used in loop to drive wheel azimuth to 0
+wheel_angle_kP=
+wheel_angle_kI=
+wheel_angle_kD=

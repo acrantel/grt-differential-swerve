@@ -154,12 +154,12 @@ public class BIGData {
 		put("gyro_ang", angle);
 	}
 
-	/** Request that swerve be zeroed. */
+	/** Request that swerve module azimuths be zeroed. */
 	public static void putZeroSwerveRequest(boolean request) {
 		put("zero_swerve", request);
 	}
 
-	/** Get whether swerve has been requested to be zeroed. */
+	/** Get whether swerve module azimuths has been requested to be zeroed. */
 	public static boolean getZeroSwerveRequest() {
 		return getBoolean("zero_swerve");
 	}
@@ -173,6 +173,7 @@ public class BIGData {
 	public static boolean getZeroIndivSwerveRequest(int wheelNum) {
 		return getBoolean("zero_module_" + wheelNum);
 	}
+
 	/** set the config file message to display to drivers */
 	public static void putConfigFileMsg(String msg) {
 		put("config_msg", msg);
@@ -182,7 +183,6 @@ public class BIGData {
 	public static String getConfigFileMsg() {
 		return getString("config_msg");
 	}
-
 
 	/** put (or update) a key/value mapping into the map */
 	public static void put(String key, String val) {
